@@ -31,94 +31,57 @@ Notes:
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- opened on:  10 Apr 2016, 10:58:27
+ opened on:  11 Apr 2016, 15:02:57
 
 . timer on 1
 
-. qui set seed 100
+. set seed 100
 
-. qui drawnorm alpha_i, n(200)
+. capture program drop mcprog_fe
 
-. qui gen i = _n 
+.         program mcprog_fe
+  1.         clear
+  2.         drawnorm alpha_i, n(200)
+  3.         gen i = _n 
+  4.         expand 5
+  5.         bys i: g t = _n 
+  6.         gen trend = t*i  
+  7.         drawnorm nu_it e_it, n(1000)
+  8.         g x_it = nu_it + alpha_i + trend 
+  9.         g y_it = 3 + alpha_i + 2*x_it + trend + e_it 
+ 10.         xtset i t
+ 11.         xtdata i t x_it y_it, fe clear 
+ 12.             * preforms the within-transformation, so we can be sure that it is really the first thing in the regression
+.         xtset i t 
+ 13.             * to sort the data
+.         g dx_it = d.x_it
+ 14.         g dy_it = d.y_it
+ 15.         reg dy_it dx_it,  
+ 16.             * Random-Trend (FE-FD)
+.         drop y_it x_it
+ 17. end
 
-.     * included additional to generate an index for the individual level
-. qui expand 5
+.         simulate _b, nodots nolegend  reps(100): mcprog_fe
 
-. qui bys i: g t = _n 
 
-.     * included additional to generate an index for the time level
-. qui drawnorm nu_it e_it, n(1000)
+.         rename _b_dx_it beta_fe_fd
 
-. qui g x_it = nu_it + alpha_i
+.         keep beta_fe_fd 
 
-. qui g y_it = 3 + alpha_i + 2*x_it + e_it 
-
-.     * DGP
-. 
-. qui xtset i t 
-
-.     * give stata panel-information
-. 
-. qui gen dx_it = d.x_it 
-
-.     * generates the first-difference prior to the regression command
-. qui gen dy_it = d.y_it 
-
-.     * generates the first-difference prior to the regression command
-. 
-. 
-. qui eststo: reg y_it x_it, cluster(i) 
-
-.     * OLS-regression (biased)
-. qui eststo: xtreg  y_it x_it, fe  
-
-.     * FE-regression
-. qui eststo: reg d.y_it d.x_it, 
-
-.     * FD-regression
-. qui eststo: xtreg d.y_it d.x_it,fe 
-
-.     * Random-Trend 1
-. qui eststo: reg d2.y_it d2.x_it,  
-
-.     * Random-Trend  (2 FD)  
-. 
-. esttab, long compress nogaps rename(D.x_it x_it D2.x_it x_it D.dx_it x_it) drop(_cons) ///
->         b(%7,5f) se(%6.3f) scalars("N N" "r2_a r2_a" "F F-Stat" "p p-value" "r2 r2" "aic aic" "bic") sfmt(%4,0f %6,5f %5,2f %5,4f %6,5f %9,2f %9,2f) star(+ 0.1 * 0.05 ** 0.01 *** 0.001) ///
->         label mtitles( "OLS" "FE" "FD" "FD-FE" "2-FD" "FD-FD" ) title("Without a random trend component") nolabel replace 
-
-Without a random trend component
----------------------------------------------------------------------------------
-                       (1)          (2)          (3)          (4)          (5)   
-                       OLS           FE           FD        FD-FE         2-FD   
----------------------------------------------------------------------------------
-x_it               2,47702***   2,02807***   2,03600***   2,03628***   2,02678***
-                   (0.033)      (0.037)      (0.037)      (0.043)      (0.043)   
----------------------------------------------------------------------------------
-Observations          1000         1000          800          800          600   
-r2_a               0,88590      0,73902      0,78723      0,71468      0,79025   
-F-Stat             5621,67      3028,86      2957,19      2201,34      2257,80   
-p-value             0,0000       0,0000       0,0000       0,0000       0,0000   
-r2                 0,88602      0,79127      0,78749      0,78610      0,79060   
-aic                3256,78      2687,09      2904,96      2856,71      2830,15   
-bic                3266,60      2696,91      2914,33      2866,08      2838,94   
----------------------------------------------------------------------------------
-Standard errors in parentheses
-+ p<0.1, * p<0.05, ** p<0.01, *** p<0.001
-
+.             * it = individual trend
 . timer off 1
 
-. display "Time needed to run:"
-Time needed to run:
+. display "The time this codes run is"
+The time this codes run is
 
 . timer list 1
-   1:      5.31 /        1 =       5.3130
+   1:      4.11 /        1 =       4.1140
 
 . log close
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- closed on:  10 Apr 2016, 10:58:33
+ closed on:  11 Apr 2016, 15:03:02
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 . save "/Users/jakobschwerter/.ipython/stata/data_output.dta", replace 
