@@ -31,57 +31,82 @@ Notes:
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- opened on:  12 Apr 2016, 10:21:51
+ opened on:  13 Apr 2016, 13:50:12
 
-. timer on 1
+. qui set seed 123
 
-. set seed 100
+. qui drawnorm alpha_i, n(200)
 
-. capture program drop mcprog_fe
+. qui gen i = _n 
 
-.         program mcprog_fe
-  1.         clear
-  2.         drawnorm alpha_i, n(200)
-  3.         gen i = _n 
-  4.         expand 5
-  5.         bys i: g t = _n 
-  6.         gen trend = t*i  
-  7.         drawnorm nu_it e_it, n(1000)
-  8.         g x_it = nu_it + alpha_i + trend 
-  9.         g y_it = 3 + alpha_i + 2*x_it + trend + e_it 
- 10.         xtset i t
- 11.         xtdata i t x_it y_it, fe clear 
- 12.             * preforms the within-transformation, so we can be sure that it is really the first thing in the regression
-.         xtset i t 
- 13.             * to sort the data
-.         g dx_it = d.x_it
- 14.         g dy_it = d.y_it
- 15.         reg dy_it dx_it,  
- 16.             * Random-Trend (FE-FD)
-.         drop y_it x_it
- 17. end
+.     * included additional to generate an index for the individual level
+. qui expand 5
 
-.         simulate _b, nodots nolegend  reps(100): mcprog_fe
+. qui bys i: g t = _n 
 
+.     * included additional to generate an index for the time level
+. qui drawnorm nu_it e_it, n(1000)
 
-.         rename _b_dx_it beta_fe_fd
+. qui g x_it = nu_it + alpha_i
 
-.         keep beta_fe_fd 
+. qui g y_it = 3 + alpha_i + 2*x_it + e_it 
 
-.             * it = individual trend
-. timer off 1
+.     * DGP
+. 
+. qui xtset i t 
 
-. display "The time this codes run is"
-The time this codes run is
+.     * give stata panel-information
+. 
+. qui gen dx_it = d.x_it 
 
-. timer list 1
-   1:      3.95 /        1 =       3.9490
+.     * generates the first-difference for x prior to the regression command
+. qui gen dy_it = d.y_it 
 
+.     * generates the first-difference for y prior to the regression command
+. 
+. 
+. qui eststo: reg y_it x_it, cluster(i) 
+
+.     * OLS-regression (biased) (eststo saves the regression results)
+. qui eststo: xtreg  y_it x_it, fe  
+
+.     * FE-regression (OLS, but first the within-transformation is done)
+. qui eststo: reg d.y_it d.x_it, 
+
+.     * FD-regression
+. qui eststo: xtreg d.y_it d.x_it,fe 
+
+.     * Random-Trend 1 (mix)
+. qui eststo: reg d2.y_it d2.x_it,  
+
+.     * Random-Trend 2 (pure)  
+. 
+. esttab, long compress nogaps rename(D.x_it x_it D2.x_it x_it D.dx_it x_it) drop(_cons) ///
+>         b(%7,3f) se(%6.4f) scalars("N N" "F F-Stat" "p p-value" "r2 r2") sfmt(%4,0f %5,0f %5,2f %6,2f %9,2f %9,2f) star(* 0.001) ///
+>         label mtitles( "OLS" "FE" "FD" "FD-FE" "2-FD" "FD-FD" ) title("Without a random trend component") nolabel replace
+
+Without a random trend component
+-----------------------------------------------------------------------
+                       (1)        (2)        (3)        (4)        (5) 
+                       OLS         FE         FD      FD-FE       2-FD 
+-----------------------------------------------------------------------
+x_it                 2,500*     2,052*     2,002*     1,989*     1,995*
+                  (0.0312)   (0.0338)   (0.0354)   (0.0412)   (0.0422) 
+-----------------------------------------------------------------------
+Observations          1000       1000        800        800        600 
+F-Stat                6403       3675       3192       2331       2238 
+p-value               0,00       0,00       0,00       0,00       0,00 
+r2                    0,89       0,82       0,80       0,80       0,79 
+-----------------------------------------------------------------------
+Standard errors in parentheses
+* p<0.001
+
+.     * esttab produces the table
 . log close
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- closed on:  12 Apr 2016, 10:21:55
+ closed on:  13 Apr 2016, 13:50:13
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 . save "/Users/jakobschwerter/.ipython/stata/data_output.dta", replace 
