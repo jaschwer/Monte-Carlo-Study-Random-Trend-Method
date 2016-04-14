@@ -31,82 +31,49 @@ Notes:
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- opened on:  13 Apr 2016, 13:50:12
+ opened on:  14 Apr 2016, 14:38:41
 
-. qui set seed 123
+. timer on 1
 
-. qui drawnorm alpha_i, n(200)
+. set seed 100
 
-. qui gen i = _n 
+. capture program drop mcprog_pool
 
-.     * included additional to generate an index for the individual level
-. qui expand 5
+. program mcprog_pool
+  1.         clear
+  2.         drawnorm alpha_i, n(200)
+  3.         gen i = _n 
+  4.         expand 5
+  5.         bys i: g t = _n 
+  6.         drawnorm nu_it e_it, n(1000)
+  7.         g x_it=nu_it+alpha_i
+  8.         g y_it=3+alpha_i+2*x_it+e_it
+  9.         reg y_it x_it, 
+ 10.         drop nu_it alpha_i e_it y_it x_it
+ 11. end
 
-. qui bys i: g t = _n 
+.         simulate _b _se, nodots nolegend  reps(1000): mcprog_pool
 
-.     * included additional to generate an index for the time level
-. qui drawnorm nu_it e_it, n(1000)
 
-. qui g x_it = nu_it + alpha_i
+.         rename _b_x_it beta_pool
 
-. qui g y_it = 3 + alpha_i + 2*x_it + e_it 
+.         rename _se_x_it se_pool
 
-.     * DGP
-. 
-. qui xtset i t 
+.         keep beta_pool se_pool
 
-.     * give stata panel-information
-. 
-. qui gen dx_it = d.x_it 
+. timer off 1
 
-.     * generates the first-difference for x prior to the regression command
-. qui gen dy_it = d.y_it 
+. display "The time this code runs is"
+The time this code runs is
 
-.     * generates the first-difference for y prior to the regression command
-. 
-. 
-. qui eststo: reg y_it x_it, cluster(i) 
+. timer list 1
+   1:     11.59 /        1 =      11.5890
 
-.     * OLS-regression (biased) (eststo saves the regression results)
-. qui eststo: xtreg  y_it x_it, fe  
-
-.     * FE-regression (OLS, but first the within-transformation is done)
-. qui eststo: reg d.y_it d.x_it, 
-
-.     * FD-regression
-. qui eststo: xtreg d.y_it d.x_it,fe 
-
-.     * Random-Trend 1 (mix)
-. qui eststo: reg d2.y_it d2.x_it,  
-
-.     * Random-Trend 2 (pure)  
-. 
-. esttab, long compress nogaps rename(D.x_it x_it D2.x_it x_it D.dx_it x_it) drop(_cons) ///
->         b(%7,3f) se(%6.4f) scalars("N N" "F F-Stat" "p p-value" "r2 r2") sfmt(%4,0f %5,0f %5,2f %6,2f %9,2f %9,2f) star(* 0.001) ///
->         label mtitles( "OLS" "FE" "FD" "FD-FE" "2-FD" "FD-FD" ) title("Without a random trend component") nolabel replace
-
-Without a random trend component
------------------------------------------------------------------------
-                       (1)        (2)        (3)        (4)        (5) 
-                       OLS         FE         FD      FD-FE       2-FD 
------------------------------------------------------------------------
-x_it                 2,500*     2,052*     2,002*     1,989*     1,995*
-                  (0.0312)   (0.0338)   (0.0354)   (0.0412)   (0.0422) 
------------------------------------------------------------------------
-Observations          1000       1000        800        800        600 
-F-Stat                6403       3675       3192       2331       2238 
-p-value               0,00       0,00       0,00       0,00       0,00 
-r2                    0,89       0,82       0,80       0,80       0,79 
------------------------------------------------------------------------
-Standard errors in parentheses
-* p<0.001
-
-.     * esttab produces the table
 . log close
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- closed on:  13 Apr 2016, 13:50:13
+ closed on:  14 Apr 2016, 14:38:53
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 . save "/Users/jakobschwerter/.ipython/stata/data_output.dta", replace 
