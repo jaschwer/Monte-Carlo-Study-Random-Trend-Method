@@ -31,49 +31,57 @@ Notes:
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- opened on:  14 Apr 2016, 14:38:41
+ opened on:  14 Apr 2016, 14:57:47
 
 . timer on 1
 
 . set seed 100
 
-. capture program drop mcprog_pool
+. capture program drop mcprog_fe
 
-. program mcprog_pool
+.         program mcprog_fe
   1.         clear
   2.         drawnorm alpha_i, n(200)
   3.         gen i = _n 
   4.         expand 5
   5.         bys i: g t = _n 
-  6.         drawnorm nu_it e_it, n(1000)
-  7.         g x_it=nu_it+alpha_i
-  8.         g y_it=3+alpha_i+2*x_it+e_it
-  9.         reg y_it x_it, 
- 10.         drop nu_it alpha_i e_it y_it x_it
- 11. end
+  6.         gen trend = t*i  
+  7.         drawnorm nu_it e_it, n(1000)
+  8.         g x_it = nu_it + alpha_i + trend 
+  9.         g y_it = 3 + alpha_i + 2*x_it + trend + e_it 
+ 10.         xtset i t
+ 11.         xtdata i t x_it y_it, fe clear 
+ 12.             * preforms the within-transformation, so we can be sure that it is really the first thing in the regression
+.         xtset i t 
+ 13.             * to sort the data
+.         g dx_it = d.x_it
+ 14.         g dy_it = d.y_it
+ 15.         reg dy_it dx_it,  
+ 16.             * Random-Trend (FE-FD)
+.         drop y_it x_it
+ 17. end
 
-.         simulate _b _se, nodots nolegend  reps(1000): mcprog_pool
+.         simulate _b, nodots nolegend  reps(100): mcprog_fe
 
 
-.         rename _b_x_it beta_pool
+.         rename _b_dx_it beta_fe_fd
 
-.         rename _se_x_it se_pool
+.         keep beta_fe_fd 
 
-.         keep beta_pool se_pool
-
+.             * it = individual trend
 . timer off 1
 
 . display "The time this code runs is"
 The time this code runs is
 
 . timer list 1
-   1:     11.59 /        1 =      11.5890
+   1:      3.56 /        1 =       3.5580
 
 . log close
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- closed on:  14 Apr 2016, 14:38:53
+ closed on:  14 Apr 2016, 14:57:51
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 . save "/Users/jakobschwerter/.ipython/stata/data_output.dta", replace 
