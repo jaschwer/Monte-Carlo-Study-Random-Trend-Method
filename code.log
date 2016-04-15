@@ -31,7 +31,7 @@ Notes:
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- opened on:  14 Apr 2016, 14:57:47
+ opened on:  15 Apr 2016, 17:27:01
 
 . timer on 1
 
@@ -75,13 +75,13 @@ Notes:
 The time this code runs is
 
 . timer list 1
-   1:      3.56 /        1 =       3.5580
+   1:      3.45 /        1 =       3.4530
 
 . log close
       name:  <unnamed>
        log:  /Users/jakobschwerter/.ipython/stata/log_output.log
   log type:  text
- closed on:  14 Apr 2016, 14:57:51
+ closed on:  15 Apr 2016, 17:27:05
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 . save "/Users/jakobschwerter/.ipython/stata/data_output.dta", replace 
